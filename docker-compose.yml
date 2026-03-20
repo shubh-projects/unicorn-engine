@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  postgres-db:
+    image: postgres:15-alpine
+    container_name: unicorn-db
+    environment:
+      - POSTGRES_USER=unicorn_admin
+      - POSTGRES_PASSWORD=unicorn_secret
+      - POSTGRES_DB=unicorn_engine
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: always
+
+  redis-cache:
+    image: redis:alpine
+    container_name: unicorn-redis
+    ports:
+      - "6379:6379"
+    restart: always
+
+  quant-engine:
+    build: .
+    container_name: unicorn-data-pump
+    command: python main.py
+    env_file:
+      - .env
+    depends_on:
+      - redis-cache
+    environment:
+      - REDIS_HOST=redis-cache
+    restart: always
+
+  api-server:
+    build: .
+    container_name: unicorn-api
+    command: uvicorn api:app --host 0.0.0.0 --port 8000
+    ports:
+      - "80:8000"
+    depends_on:
+      - redis-cache
+      - postgres-db
+    environment:
+      - REDIS_HOST=redis-cache
+      - DB_HOST=postgres-db
+    volumes:
+      - ./strategies:/app/strategies
+    restart: always
+
+  orchestrator-engine:
+    build: .
+    container_name: unicorn-orchestrator
+    command: python orchestrator.py
+    depends_on:
+      - redis-cache
+    environment:
+      - REDIS_HOST=redis-cache
+    volumes:
+      - ./strategies:/app/strategies
+    restart: always
+
+volumes:
+  pgdata:

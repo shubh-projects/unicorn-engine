@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unicorn Engine Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body class="bg-[#0b0e14] text-white font-sans min-h-screen p-8">
+    <div class="max-w-7xl mx-auto">
+        
+        <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 gap-4">
+            <h1 class="text-2xl font-bold text-indigo-400">UNICORN<span class="text-white">ENGINE</span> <span class="text-xs text-green-400 ml-2 border border-green-800 bg-green-900/30 px-2 py-1 rounded">V3 DYNAMIC</span></h1>
+            
+            <div class="flex flex-wrap items-center bg-[#161b22] border border-gray-800 rounded-lg p-1 shadow-lg gap-2">
+                <span class="text-gray-400 pl-4 pr-1 text-xs font-bold tracking-wider">CAPITAL (₹)</span>
+                <input type="number" id="capitalInput" value="100000" class="bg-[#0b0e14] text-white border border-gray-700 rounded p-1.5 w-28 focus:ring-1 focus:ring-indigo-500 outline-none font-mono text-sm">
+                
+                <span class="text-gray-400 pl-2 pr-1 text-xs font-bold tracking-wider text-green-400">FAST MA</span>
+                <input type="number" id="fastMaInput" value="50" class="bg-[#0b0e14] text-white border border-gray-700 rounded p-1.5 w-16 focus:ring-1 focus:ring-green-500 outline-none font-mono text-sm text-center">
+                
+                <span class="text-gray-400 pl-2 pr-1 text-xs font-bold tracking-wider text-red-400">SLOW MA</span>
+                <input type="number" id="slowMaInput" value="200" class="bg-[#0b0e14] text-white border border-gray-700 rounded p-1.5 w-16 focus:ring-1 focus:ring-red-500 outline-none font-mono text-sm text-center">
+
+                <button onclick="initializeDashboard()" id="runBtn" class="ml-2 bg-indigo-600 hover:bg-indigo-500 px-6 py-1.5 rounded font-semibold transition text-sm">
+                    Run Backtest
+                </button>
+            </div>
+        </div>
+
+        <div id="errorBox" class="hidden bg-red-900 border border-red-500 text-red-100 p-4 rounded-xl mb-6 font-mono text-sm shadow-lg"></div>
+
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6 text-center">
+            <div class="bg-[#161b22] p-4 rounded-xl border border-gray-800 shadow-lg"><p class="text-gray-400 text-[10px] uppercase mb-1 tracking-widest font-bold">Invested</p><p id="initial" class="text-xl font-mono text-gray-300">...</p></div>
+            <div class="bg-[#161b22] p-4 rounded-xl border border-gray-800 shadow-lg"><p class="text-gray-400 text-[10px] uppercase mb-1 tracking-widest font-bold">Final Value</p><p id="final" class="text-xl font-mono text-green-400">...</p></div>
+            <div class="bg-[#161b22] p-4 rounded-xl border border-gray-800 shadow-lg"><p class="text-gray-400 text-[10px] uppercase mb-1 tracking-widest font-bold">Net ROI</p><p id="roi" class="text-xl font-mono text-indigo-400">...</p></div>
+            <div class="bg-[#161b22] p-4 rounded-xl border border-gray-800 shadow-lg"><p class="text-gray-400 text-[10px] uppercase mb-1 tracking-widest font-bold">Win Rate</p><p id="winRate" class="text-xl font-mono text-blue-400">...</p></div>
+            <div class="bg-[#161b22] p-4 rounded-xl border border-gray-800 shadow-lg"><p class="text-gray-400 text-[10px] uppercase mb-1 tracking-widest font-bold">Max Drawdown</p><p id="drawdown" class="text-xl font-mono text-red-400">...</p></div>
+        </div>
+
+        <div class="flex gap-4 mb-2 text-xs font-mono">
+            <span class="text-indigo-400">■ Portfolio (Left)</span>
+            <span class="text-gray-400">■ Stock Price</span>
+            <span class="text-green-400">■ Fast MA</span>
+            <span class="text-red-400">■ Slow MA</span>
+        </div>
+        
+        <div class="bg-[#161b22] rounded-xl border border-gray-800 p-1 shadow-2xl relative">
+            <div id="chartContainer" style="height: 500px; width: 100%;"></div>
+        </div>
+    </div>
+
+    <script>
+        let chart;
+        let portfolioSeries, priceSeries, fastMaSeries, slowMaSeries;
+
+        function initChart() {
+            const container = document.getElementById('chartContainer');
+            if (chart) container.innerHTML = ''; 
+            
+            chart = LightweightCharts.createChart(container, {
+                layout: { background: { type: 'solid', color: '#161b22' }, textColor: '#d1d4dc' },
+                grid: { vertLines: { color: 'rgba(42, 46, 57, 0.2)' }, horzLines: { color: 'rgba(42, 46, 57, 0.2)' } },
+                leftPriceScale: { visible: true, borderColor: '#374151' },
+                rightPriceScale: { visible: true, borderColor: '#374151' },
+                timeScale: { borderVisible: false, timeVisible: true },
+            });
+            
+            portfolioSeries = chart.addLineSeries({ color: '#818cf8', lineWidth: 3, priceScaleId: 'left' });
+            priceSeries = chart.addLineSeries({ color: 'rgba(200, 200, 200, 0.5)', lineWidth: 1, priceScaleId: 'right' });
+            fastMaSeries = chart.addLineSeries({ color: '#4ade80', lineWidth: 1.5, priceScaleId: 'right' });
+            slowMaSeries = chart.addLineSeries({ color: '#f87171', lineWidth: 1.5, priceScaleId: 'right' });
+            
+            new ResizeObserver(entries => {
+                if (entries[0].target === container) chart.applyOptions({ width: entries[0].contentRect.width, height: 500 });
+            }).observe(container);
+        }
+
+        async function initializeDashboard() {
+            const btn = document.getElementById('runBtn');
+            const capital = document.getElementById('capitalInput').value;
+            const fastMa = document.getElementById('fastMaInput').value;
+            const slowMa = document.getElementById('slowMaInput').value;
+            
+            btn.innerText = "Processing...";
+            btn.disabled = true;
+            
+            if(!chart) initChart();
+
+            try {
+                // THE MAGIC STRING: We pass all parameters to the backend
+                const res = await fetch(`/run-backtest?capital=${capital}&fast_ma=${fastMa}&slow_ma=${slowMa}`);
+                if (!res.ok) throw new Error("API failed");
+                const data = await res.json();
+
+                document.getElementById('initial').innerText = "₹" + data.summary.initial.toLocaleString();
+                document.getElementById('final').innerText = "₹" + data.summary.final.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                document.getElementById('roi').innerText = data.summary.roi;
+                document.getElementById('winRate').innerText = data.summary.win_rate;
+                document.getElementById('drawdown').innerText = data.summary.max_drawdown;
+
+                let rawData = data.chart.map(p => ({
+                    time: Math.floor(new Date(p.t.replace(' ', 'T')).getTime() / 1000),
+                    portfolio: p.portfolio,
+                    close: p.close,
+                    fast_ma: p.fast_ma,
+                    slow_ma: p.slow_ma
+                })).sort((a, b) => a.time - b.time);
+
+                let cleanData = [];
+                let lastTime = -1;
+                rawData.forEach(item => {
+                    if (item.time > lastTime) { cleanData.push(item); lastTime = item.time; }
+                });
+
+                portfolioSeries.setData(cleanData.map(d => ({time: d.time, value: d.portfolio})));
+                priceSeries.setData(cleanData.map(d => ({time: d.time, value: d.close})));
+                fastMaSeries.setData(cleanData.map(d => ({time: d.time, value: d.fast_ma})));
+                slowMaSeries.setData(cleanData.map(d => ({time: d.time, value: d.slow_ma})));
+
+                chart.timeScale().fitContent();
+
+            } catch (e) {
+                document.getElementById('errorBox').classList.remove('hidden');
+                document.getElementById('errorBox').innerText = "🚨 Error: " + e.message;
+            } finally {
+                btn.innerText = "Run Backtest";
+                btn.disabled = false;
+            }
+        }
+
+        window.onload = initializeDashboard;
+    </script>
+</body>
+</html>

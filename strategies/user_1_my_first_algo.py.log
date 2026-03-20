@@ -1,0 +1,20 @@
+✅ [INIT] Strategy Sandbox Booted Successfully.
+📡 Connect to Redis memory... OK
+🔐 Validating API Keys... OK
+[TICK] Bank Nifty scanned at ₹44998
+[TICK] Bank Nifty scanned at ₹45000
+[TICK] Bank Nifty scanned at ₹44996
+[TICK] Bank Nifty scanned at ₹45009
+   🚀 BUY SIGNAL: Executed 15 shares at ₹45009
+   ✅ Order ID: DHAN-99283-AX
+[TICK] Bank Nifty scanned at ₹44998
+[TICK] Bank Nifty scanned at ₹44998
+[TICK] Bank Nifty scanned at ₹45002
+[TICK] Bank Nifty scanned at ₹45000
+[TICK] Bank Nifty scanned at ₹44995
+[TICK] Bank Nifty scanned at ₹44998
+[TICK] Bank Nifty scanned at ₹45001
+[TICK] Bank Nifty scanned at ₹44991
+[TICK] Bank Nifty scanned at ₹45004
+[TICK] Bank Nifty scanned at ₹44997
+⚠️ [SYSTEM] End of Trading Day. Strategy gracefully stopping.
